@@ -1,0 +1,17 @@
+{
+  "name": "part8-graphql",
+  "version": "1.0.0",
+  "description": "8",
+  "main": "index.js",
+  "scripts": {
+    "test": "test"
+  },
+  "author": "mark",
+  "license": "ISC",
+  "dependencies": {
+    "@apollo/server": "^4.12.0",
+    "apollo-server": "^3.13.0",
+    "graphql": "^16.10.0",
+    "uuid": "^11.1.0"
+  }
+}
