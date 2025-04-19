@@ -79,6 +79,8 @@ const typeDefs = gql`
     type Author {
         name: String!
         id: ID!
+        born: Int
+        bookCount: Int!
     }
 
     enum YesNo {
@@ -117,6 +119,11 @@ const typeDefs = gql`
             published: Int!
             author: String!
         ): Book
+
+        editAuthor(
+            name: String!
+            setBornTo: Int!
+        ): Author
     }
 
 `
@@ -134,7 +141,7 @@ const resolvers = {
         },
         findPerson: (root, args) =>
           persons.find(p => p.name === args.name),
-        bookCount: () => books.length,
+        // bookCount: () => books.length,
         allBooks: (parent, args) => {
             if (!args.author) {
               return books
@@ -143,6 +150,7 @@ const resolvers = {
             return books.filter(book => book.author === args.author)
         },
         allAuthors: () => authors,
+    
     },
 
   Person: {
@@ -152,6 +160,12 @@ const resolvers = {
         city: root.city
       }
     }
+  },
+
+  Author: {
+    bookCount: (parent) => {
+      return books.filter(book => book.author === parent.name).length
+    },
   },
 
   Mutation: {
@@ -189,7 +203,16 @@ const resolvers = {
         }
   
         return newBook
+    },
+
+    editAuthor: (parent, args) => {
+        const author = authors.find(a => a.name === args.name)
+        if (!author) return null
+      
+        author.born = args.setBornTo
+        return author
     }
+      
     
   }
 }
