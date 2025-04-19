@@ -194,7 +194,25 @@ const resolvers = {
         return updatedPerson
     },
 
-    addBook: (root, args) => {
+    addBook: (parent, args) => {
+        if (args.title.length < 5) {
+          throw new GraphQLError('El título debe tener al menos 5 caracteres.', {
+            extensions: {
+              code: 'BAD_USER_INPUT',
+              invalidArgs: args.title,
+            },
+          })
+        }
+  
+        if (args.author.length < 5) {
+          throw new GraphQLError('El nombre del autor debe tener al menos 5 caracteres.', {
+            extensions: {
+              code: 'BAD_USER_INPUT',
+              invalidArgs: args.author,
+            },
+          })
+        }
+  
         const newBook = { ...args, id: uuid() }
         books.push(newBook)
   
