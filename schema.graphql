@@ -46,4 +46,5 @@ type Mutation {
       born: Int
     ): Author
     editAuthor(name: String!, newName: String!): Author
+    editBook(id: ID!, title: String, published: Int, author: String, genres: [String]): Book
 }

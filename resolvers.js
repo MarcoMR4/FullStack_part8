@@ -5,10 +5,12 @@ const { GraphQLError } = require('graphql')
 const Book = require('./models/book')
 const Author = require('./models/author')
 
-
 const resolvers = {
   Query: {
-    me: (root, args, context) => context.currentUser,
+    me: async (root, args, context) => {
+      console.log(context.currentUser);
+      context.currentUser
+    },
     bookCount: async () => Book.collection.countDocuments(),
     authorCount: async () => Author.collection.countDocuments(),
     allBooks: async (root, args) => {
@@ -51,6 +53,7 @@ const resolvers = {
         })
       }
     },
+
     login: async (root, args) => {
       const user = await User.findOne({ username: args.username })
       const passwordCorrect = user === null
@@ -66,26 +69,38 @@ const resolvers = {
         id: user._id
       }
 
+      console.log("User For Token:", userForToken); 
       return { value: jwt.sign(userForToken, process.env.JWT_SECRET) }
     },
 
-    addBook: async (root, args) => {
+    addBook: async (root, args, context) => {
+      try {
         let author = await Author.findOne({ name: args.author })
         if (!author) {
           author = new Author({ name: args.author })
           await author.save()
         }
-  
+    
         const book = new Book({
           title: args.title,
           published: args.published,
           author: author._id,
           genres: args.genres
         })
-  
+    
         await book.save()
         return book.populate('author')
+      } catch (error) {
+        throw new GraphQLError('No se pudo agregar el libro', {
+          extensions: {
+            code: 'BAD_USER_INPUT',
+            invalidArgs: args,
+            error
+          }
+        })
+      }
     },
+    
     addAuthor: async (root, args) => {
     const author = new Author({
         name: args.name,
@@ -94,13 +109,59 @@ const resolvers = {
     return author.save()
     },
     editAuthor: async (root, args) => {
+      try {
         const author = await Author.findOneAndUpdate(
           { name: args.name },
           { name: args.newName },
-          { new: true }
+          { new: true, runValidators: true }
         )
+        if (!author) {
+          throw new GraphQLError('Autor no encontrado', {
+            extensions: {
+              code: 'NOT_FOUND'
+            }
+          })
+        }
         return author
-    }
+      } catch (error) {
+        throw new GraphQLError('Error al editar autor', {
+          extensions: {
+            code: 'BAD_USER_INPUT',
+            invalidArgs: args.newName,
+            error
+          }
+        })
+      }
+    },
+    
+    editBook: async (root, args) => {
+      const book = await Book.findById(args.id)
+  
+      if (!book) {
+        throw new Error('El libro no existe')
+      }
+  
+      if (args.title) {
+        book.title = args.title
+      }
+      if (args.published) {
+        book.published = args.published
+      }
+      if (args.author) {
+        let author = await Author.findOne({ name: args.author })
+        if (!author) {
+          author = new Author({ name: args.author })
+          await author.save()
+        }
+        book.author = author._id
+      }
+      if (args.genres) {
+        book.genres = args.genres
+      }
+  
+      await book.save()
+      return book.populate('author')
+    },
   }
 }
 

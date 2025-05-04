@@ -20,13 +20,29 @@ const server = new ApolloServer({
   typeDefs,
   resolvers,
   context: async ({ req }) => {
-    const auth = req.headers.authorization
-    if (auth && auth.startsWith('Bearer ')) {
-      const decodedToken = jwt.verify(auth.substring(7), process.env.JWT_SECRET)
-      const currentUser = await User.findById(decodedToken.id)
-      return { currentUser }
+    console.log('Entra');
+    const auth = req.headers.authorization;
+    console.log("Authorization Header:", auth);  
+    if (auth && auth.toLowerCase().startsWith('bearer ')) {
+      try {
+        const token = auth.substring(7);  
+        console.log("Extracted Token:", token);  
+  
+        const decodedToken = jwt.verify(token, process.env.JWT_SECRET);
+        console.log("Decoded Token:", decodedToken); 
+  
+        const currentUser = await User.findById(decodedToken.id);
+        console.log("Current User:", currentUser); 
+  
+        return { currentUser };
+      } catch (err) {
+        console.error("Error al verificar el token:", err);
+        return { currentUser: null };
+      }
     }
+    return {}; 
   }
+  
 })
 
 startStandaloneServer(server, {
