@@ -1,38 +1,58 @@
-import { useState, useEffect } from 'react'
-import { useQuery } from '@apollo/client'
-import { ALL_BOOKS } from '../queries'
+import { useState } from 'react'
+import { useQuery, useMutation } from '@apollo/client'
+import { ALL_BOOKS_GENRE, EDIT_BOOK } from '../queries'
 
 const Books = () => {
   const [selectedGenre, setSelectedGenre] = useState('All')
-  const [favoriteGenre, setFavoriteGenre] = useState(null)
-  const { loading, data, error } = useQuery(ALL_BOOKS)
+  const [editingBook, setEditingBook] = useState(null)
 
-  useEffect(() => {
-    const genre = localStorage.getItem('favorite-genre') 
-    if (genre) {
-      setFavoriteGenre(genre)
+  const { loading, data, error, refetch } = useQuery(ALL_BOOKS_GENRE, {
+    variables: { genre: selectedGenre === 'All' ? null : selectedGenre },
+    fetchPolicy: 'cache-and-network'
+  })
+
+  const [editBook] = useMutation(EDIT_BOOK, {
+    onCompleted: () => {
+      setEditingBook(null)
+      refetch()
     }
-  }, [])
+  })
+
+  const handleGenreChange = (event) => {
+    const newGenre = event.target.value
+    setSelectedGenre(newGenre)
+    refetch({ genre: newGenre === 'All' ? null : newGenre })
+  }
+
+  const startEdit = (book) => {
+    setEditingBook({
+      id: book.id,
+      title: book.title,
+      author: book.author.name,
+      published: book.published,
+      genres: book.genres
+    })
+  }
+
+  const handleEditChange = (field, value) => {
+    setEditingBook({ ...editingBook, [field]: value })
+  }
+
+  const saveEdit = (e) => {
+    e.preventDefault()
+    editBook({
+      variables: {
+        id: editingBook.id,
+        title: editingBook.title,
+        author: editingBook.author,
+        published: Number(editingBook.published),
+        genres: editingBook.genres
+      }
+    })
+  }
 
   if (loading) return <p>Loading books...</p>
   if (error) return <p>Error fetching books</p>
-
-  const filteredBooks = selectedGenre === 'All' && !favoriteGenre
-  ? data.allBooks
-  : data.allBooks.filter(book => 
-      (selectedGenre !== 'All' ? book.genres.includes(selectedGenre) : true) && 
-      (favoriteGenre ? book.genres.includes(favoriteGenre) : true)
-    )
-
-  const handleGenreChange = (event) => {
-    setSelectedGenre(event.target.value)
-  }
-
-  const handleFavoriteGenreChange = (event) => {
-    const genre = event.target.value
-    setFavoriteGenre(genre)
-    localStorage.setItem('favorite-genre', genre) // Guardar en localStorage (o en una base de datos)
-  }
 
   return (
     <div>
@@ -43,9 +63,9 @@ const Books = () => {
         <option value="Fiction">Fiction</option>
         <option value="Science">Science</option>
         <option value="Fantasy">Fantasy</option>
+        <option value="Drama">Drama</option>
       </select>
 
-      {/* Mostrar los libros filtrados */}
       <table>
         <thead>
           <tr>
@@ -53,19 +73,48 @@ const Books = () => {
             <th>Author</th>
             <th>Published</th>
             <th>Genres</th>
+            <th>Actions</th>
           </tr>
         </thead>
         <tbody>
-          {filteredBooks.map((book) => (
-            <tr key={book.title}>
+          {data.allBooks.map((book) => (
+            <tr key={book.id}>
               <td>{book.title}</td>
               <td>{book.author.name}</td>
               <td>{book.published}</td>
-              <td>{book.genres.join(', ')}</td> 
+              <td>{book.genres.join(', ')}</td>
+              <td>
+                <button onClick={() => startEdit(book)}>Edit</button>
+              </td>
             </tr>
           ))}
         </tbody>
       </table>
+
+      {editingBook && (
+        <div>
+          <h3>Edit Book</h3>
+          <form onSubmit={saveEdit}>
+            <div>
+              Title: <input value={editingBook.title} onChange={(e) => handleEditChange('title', e.target.value)} />
+            </div>
+            <div>
+              Author: <input value={editingBook.author} onChange={(e) => handleEditChange('author', e.target.value)} />
+            </div>
+            <div>
+              Published: <input value={editingBook.published} onChange={(e) => handleEditChange('published', e.target.value)} />
+            </div>
+            <div>
+              Genres: <input
+                value={editingBook.genres.join(', ')}
+                onChange={(e) => handleEditChange('genres', e.target.value.split(',').map(g => g.trim()))}
+              />
+            </div>
+            <button type="submit">Save</button>
+            <button type="button" onClick={() => setEditingBook(null)}>Cancel</button>
+          </form>
+        </div>
+      )}
     </div>
   )
 }
