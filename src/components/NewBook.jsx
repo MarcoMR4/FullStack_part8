@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { useMutation } from '@apollo/client'
-import { ADD_BOOK, ALL_BOOKS_GENRE } from '../queries'
+import { useMutation, useSubscription } from '@apollo/client'
+import { ADD_BOOK, ALL_BOOKS_GENRE, BOOK_ADDED_SUBSCRIPTION } from '../queries'
 
 const NewBook = () => {
   const [title, setTitle] = useState('')
@@ -11,7 +11,7 @@ const NewBook = () => {
 
   const [addBook] = useMutation(ADD_BOOK, {
     update: (cache, { data: { addBook } }) => {
-      const allGenres = [...addBook.genres, null] 
+      const allGenres = [...addBook.genres, null]
       allGenres.forEach(g => {
         try {
           const dataInCache = cache.readQuery({
@@ -32,6 +32,14 @@ const NewBook = () => {
           console.error('Error ', error)
         }
       })
+    }
+  })
+
+  // Suscripción a bookAdded
+  useSubscription(BOOK_ADDED_SUBSCRIPTION, {
+    onData: ({ data }) => {
+      const newBook = data.data.bookAdded
+      alert(`Nuevo libro agregado: ${newBook.title}`)
     }
   })
 

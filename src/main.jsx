@@ -1,7 +1,8 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
-import { ApolloProvider, ApolloClient, InMemoryCache, HttpLink } from '@apollo/client'
+import { ApolloProvider, ApolloClient, InMemoryCache, HttpLink, split } from '@apollo/client'
+import { WebSocketLink } from '@apollo/client/link/ws'
 // import client from './apolloClient'
 
 const client = new ApolloClient({

@@ -1,23 +1,33 @@
-import {
-    ApolloClient, InMemoryCache, HttpLink, ApolloProvider, concat
-  } from '@apollo/client'
-  
-  const authLink = (token) => ({
-    setContext: (_, { headers }) => ({
-      headers: {
-        ...headers,
-        authorization: token ? `Bearer ${token}` : null,
-      }
-    })
-  })
-  
-  const createApolloClient = (token) =>
-    new ApolloClient({
-      cache: new InMemoryCache(),
-      link: authLink(token).concat(
-        new HttpLink({ uri: 'http://localhost:4000' })
-      )
-    })
-  
-  export default createApolloClient
-  
+import { ApolloClient, InMemoryCache, gql, WebSocketLink } from '@apollo/client';
+import { createClient } from 'graphql-ws';
+
+const wsClient = createClient({
+  url: 'ws://localhost:4001',
+});
+
+const client = new ApolloClient({
+  link: new WebSocketLink(wsClient),
+  cache: new InMemoryCache(),
+});
+
+const BOOK_ADDED_SUBSCRIPTION = gql`
+  subscription {
+    bookAdded {
+      title
+      author
+      published
+    }
+  }
+`;
+
+client.subscribe({
+  query: BOOK_ADDED_SUBSCRIPTION
+}).subscribe({
+  next({ data }) {
+    const { bookAdded } = data;
+    alert(`Nuevo libro añadido: ${bookAdded.title} de ${bookAdded.author}`);
+  },
+  error(err) {
+    console.error('Error de suscripción:', err);
+  }
+});
