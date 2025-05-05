@@ -5,6 +5,9 @@ const { GraphQLError } = require('graphql')
 const Book = require('./models/book')
 const Author = require('./models/author')
 
+const { PubSub } = require('graphql-subscriptions')
+const pubsub = new PubSub()
+
 const resolvers = {
   Query: {
     me: async (root, args, context) => {
@@ -89,6 +92,7 @@ const resolvers = {
         })
     
         await book.save()
+        pubsub.publish('BOOK_ADDED', { bookAdded: book })
         return book.populate('author')
       } catch (error) {
         throw new GraphQLError('No se pudo agregar el libro', {
@@ -162,6 +166,12 @@ const resolvers = {
       await book.save()
       return book.populate('author')
     },
+  },
+
+  Subscription: {
+    bookAdded: {
+      subscribe: () => pubsub.asyncIterator(['BOOK_ADDED'])
+    }
   }
 }
 
